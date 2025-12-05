@@ -7,11 +7,14 @@
 
 <script>
   const firebaseConfig = {
-    apiKey: "YOUR_KEY",
-    authDomain: "YOUR_DOMAIN",
-    projectId: "YOUR_PROJECT_ID",
-    appId: "YOUR_APP_ID"
-  };
+  apiKey: "AIzaSyDoUbmjmF1Qah5YJNlCc5wV8jxPKvAdInw",
+  authDomain: "phuc-d0260.firebaseapp.com",
+  projectId: "phuc-d0260",
+  storageBucket: "phuc-d0260.firebasestorage.app",
+  messagingSenderId: "1008272917930",
+  appId: "1:1008272917930:web:2b7f6cbd7ab45f826717d3",
+  measurementId: "G-4Q0LBM46PC"
+};
 
   const app = firebase.initializeApp(firebaseConfig);
   const auth = firebase.auth();
@@ -47,6 +50,38 @@
     #map { height: 450px !important; }
   </style>
 </head>
+
+<!-- POPUP LOGIN -->
+<div id="loginPopup" class="fixed inset-0 bg-black/40 hidden items-center justify-center">
+  <div class="bg-white p-6 rounded-2xl shadow-xl w-[350px] space-y-4">
+
+    <h2 class="text-lg font-semibold">Đăng nhập Firebase</h2>
+
+    <input id="emailInput" class="w-full p-3 border rounded-xl"
+           placeholder="Email">
+
+    <input id="passwordInput" type="password" class="w-full p-3 border rounded-xl"
+           placeholder="Mật khẩu">
+
+    <button id="btnLogin"
+      class="w-full bg-brand-600 text-white p-3 rounded-xl">
+      Đăng nhập
+    </button>
+
+    <button id="btnRegister"
+      class="w-full bg-brand-700 text-white p-3 rounded-xl">
+      Tạo tài khoản
+    </button>
+
+    <p id="authMessage" class="text-sm text-red-500"></p>
+
+    <button id="btnCloseLogin"
+      class="w-full bg-slate-200 p-2 rounded-xl">
+      Đóng
+    </button>
+  </div>
+</div>
+
 
 <body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900">
 
@@ -263,6 +298,52 @@
       };
 
     });
+
+    /* ======================
+   FIREBASE AUTH
+====================== */
+
+const loginPopup = document.getElementById("loginPopup");
+const openLoginPopup = document.getElementById("openLoginPopup");
+const closeLoginPopup = document.getElementById("btnCloseLogin");
+
+openLoginPopup.onclick = () => loginPopup.classList.remove("hidden");
+closeLoginPopup.onclick = () => loginPopup.classList.add("hidden");
+
+document.getElementById("btnRegister").onclick = async () => {
+  const email = document.getElementById("emailInput").value;
+  const pass = document.getElementById("passwordInput").value;
+
+  try {
+    await auth.createUserWithEmailAndPassword(email, pass);
+    document.getElementById("authMessage").textContent = "Đăng ký thành công!";
+  } catch (e) {
+    document.getElementById("authMessage").textContent = e.message;
+  }
+};
+
+document.getElementById("btnLogin").onclick = async () => {
+  const email = document.getElementById("emailInput").value;
+  const pass = document.getElementById("passwordInput").value;
+
+  try {
+    await auth.signInWithEmailAndPassword(email, pass);
+    document.getElementById("authMessage").textContent = "Đăng nhập thành công!";
+    loginPopup.classList.add("hidden");
+  } catch (e) {
+    document.getElementById("authMessage").textContent = e.message;
+  }
+};
+
+// Theo dõi trạng thái đăng nhập
+auth.onAuthStateChanged(user => {
+  if (user) {
+    console.log("Đã đăng nhập:", user.email);
+  } else {
+    console.log("Chưa đăng nhập");
+  }
+});
+
   </script>
 
 </body>
