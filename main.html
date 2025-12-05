@@ -1,14 +1,30 @@
 <!doctype html>
 <html lang="vi">
 <head>
+  <!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"></script>
+
+<script>
+  const firebaseConfig = {
+    apiKey: "YOUR_KEY",
+    authDomain: "YOUR_DOMAIN",
+    projectId: "YOUR_PROJECT_ID",
+    appId: "YOUR_APP_ID"
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+</script>
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Vibe UI + OSM + Weather</title>
+  <title>Vibe UI + OSM + Weather + Translate</title>
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-  <!-- Tailwind CDN -->
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -27,198 +43,227 @@
     }
   </script>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-
-  <!-- Fix chiều cao cho Leaflet -->
   <style>
-    #map {
-      height: 450px !important;
-    }
-    .leaflet-container {
-      width: 100% !important;
-      height: 100% !important;
-    }
+    #map { height: 450px !important; }
   </style>
 </head>
 
 <body class="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900">
+
   <div class="max-w-4xl mx-auto p-6">
+
     <!-- Header -->
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-3">
-        <div class="h-10 w-10 rounded-2xl bg-brand-600 shadow-lg"></div>
-        <h1 class="text-2xl font-bold tracking-tight">Vibe UI</h1>
+        <div class="h-10 w-10 rounded-2xl bg-brand-600"></div>
+        <h1 class="text-2xl font-bold">Vibe UI</h1>
       </div>
-      <div class="flex items-center gap-3 text-sm text-slate-500">
-        OSM + OpenWeather demo
-      </div>
+
+      <!-- ⭐ Nút mở popup dịch -->
+      <button id="openTranslatePopup"
+        class="px-4 py-2 bg-brand-600 text-white rounded-xl shadow">
+        Dịch câu
+      </button>
+
+    <button id="openLoginPopup"
+  class="px-4 py-2 bg-brand-700 text-white rounded-xl shadow">
+  Đăng nhập
+</button>
+
     </header>
 
     <!-- Hero -->
     <section class="mt-8">
-      <div class="rounded-3xl p-6 md:p-10 bg-white border border-slate-200 shadow-xl">
-        <h2 class="text-xl md:text-2xl font-bold">Bản đồ POI + Thời tiết</h2>
+      <div class="rounded-3xl p-6 bg-white shadow-xl border border-slate-200">
+        <h2 class="text-xl font-bold">Bản đồ POI + Thời tiết</h2>
         <p class="mt-2 text-slate-600">
-          Nhập tên một địa điểm ở Việt Nam. Hệ thống sẽ hiển thị 5 điểm POI gần đó trên bản đồ OpenStreetMap
-          và thông tin thời tiết hiện tại (OpenWeather).
+          Nhập một địa điểm → hiện POI + thời tiết tại vị trí đó.
         </p>
       </div>
     </section>
 
     <!-- OSM + Weather -->
     <section class="mt-8">
-      <div class="rounded-3xl p-6 bg-white border border-slate-200 shadow-xl space-y-4">
-        <h3 class="text-lg font-semibold">Tìm 5 địa điểm + thời tiết (OSM + OpenWeather)</h3>
+      <div class="rounded-3xl p-6 bg-white border shadow space-y-4">
 
         <div class="flex gap-3">
-          <input id="placeInput" type="text"
-                 placeholder="Nhập địa điểm... (vd: Đà Lạt, Hồ Gươm, Quận 1 Hồ Chí Minh)"
-                 class="flex-grow px-4 py-3 rounded-xl border border-slate-300 bg-slate-50 focus:bg-white focus:outline-none focus:ring-4 focus:ring-brand-100">
+          <input id="placeInput" placeholder="Nhập địa điểm..."
+            class="flex-grow px-4 py-3 border rounded-xl">
           <button id="btnSearch"
-                  class="px-5 py-3 rounded-xl bg-brand-600 text-white font-semibold shadow hover:bg-brand-700 active:scale-[.98]">
+            class="px-5 py-3 bg-brand-600 text-white rounded-xl">
             Tìm
           </button>
         </div>
 
-        <div id="map" class="w-full rounded-2xl border border-slate-200"></div>
+        <div id="map" class="rounded-2xl border"></div>
 
-        <!-- Weather card -->
-        <div id="weatherCard" class="mt-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 hidden">
-          <h4 class="font-semibold mb-1">Thời tiết hiện tại</h4>
-          <p id="weatherPlace" class="text-sm text-slate-600"></p>
-          <div class="mt-2 flex items-center gap-4">
-            <div class="text-3xl font-bold" id="weatherTemp"></div>
-            <div class="text-sm text-slate-700" id="weatherDesc"></div>
+        <!-- Weather -->
+        <div id="weatherCard" class="mt-4 hidden p-4 bg-slate-50 rounded-xl border">
+          <h4 class="font-semibold">Thời tiết</h4>
+          <p id="weatherPlace"></p>
+          <div class="flex items-center gap-4 mt-2">
+            <div id="weatherTemp" class="text-3xl font-bold"></div>
+            <div id="weatherDesc"></div>
           </div>
-          <p class="mt-1 text-xs text-slate-500" id="weatherExtra"></p>
+          <p id="weatherExtra" class="text-xs text-slate-500 mt-1"></p>
         </div>
+
       </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="py-10 text-center text-sm text-slate-500">
+    <!-- Popup dịch -->
+    <div id="translatePopup"
+      class="fixed inset-0 bg-black/40 hidden items-center justify-center">
+
+      <div class="bg-white p-6 rounded-2xl shadow-xl w-[350px] space-y-4">
+
+        <h2 class="text-lg font-semibold">Dịch tiếng Anh → Tiếng Việt</h2>
+
+        <textarea id="translateInput" rows="3"
+          class="w-full border rounded-xl p-3"
+          placeholder="Nhập câu tiếng Anh..."></textarea>
+
+        <button id="btnTranslate"
+          class="px-4 py-2 w-full bg-brand-600 text-white rounded-xl">
+          Dịch
+        </button>
+
+        <div>
+          <p class="text-sm font-semibold">Kết quả:</p>
+          <p id="translateOutput" class="p-3 bg-slate-100 rounded-xl min-h-[60px]"></p>
+        </div>
+
+        <button id="btnClosePopup"
+          class="px-4 py-2 w-full bg-slate-200 rounded-xl">
+          Đóng
+        </button>
+
+      </div>
+    </div>
+
+    <footer class="py-10 text-sm text-center text-slate-500">
       Made with ♥ in Codespaces
     </footer>
+
   </div>
 
   <!-- Leaflet JS -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-  <!-- Script chính -->
+  <!-- ⭐ Script -->
   <script>
     document.addEventListener("DOMContentLoaded", () => {
+
       const OPENWEATHER_API_KEY = "fb859b8c1e888ad0d20514555a8755e2";
 
-      // Map mặc định (HCM)
-      const map = L.map("map").setView([10.762622, 106.660172], 13);
+      /* ======================
+         MAP + POI + WEATHER
+      =======================*/
 
-      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(map);
+      const map = L.map("map").setView([10.76, 106.66], 13);
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
 
       const btnSearch = document.getElementById("btnSearch");
       const placeInput = document.getElementById("placeInput");
 
-      // Weather elements
       const weatherCard  = document.getElementById("weatherCard");
       const weatherPlace = document.getElementById("weatherPlace");
       const weatherTemp  = document.getElementById("weatherTemp");
       const weatherDesc  = document.getElementById("weatherDesc");
       const weatherExtra = document.getElementById("weatherExtra");
 
-      async function geocode(query) {
-        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+      async function geocode(q) {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=1`;
         const res = await fetch(url);
         const data = await res.json();
-        if (data.length === 0) return null;
-        return {
-          lat: parseFloat(data[0].lat),
-          lon: parseFloat(data[0].lon),
-          displayName: data[0].display_name
-        };
+        return data[0] || null;
       }
 
       async function fetchPOI(lat, lon) {
         const query = `
           [out:json];
-          (
-            node(around:800, ${lat}, ${lon})["amenity"];
-          );
-          out center;
+          node(around:800, ${lat}, ${lon})["amenity"];
+          out;
         `;
         const res = await fetch("https://overpass-api.de/api/interpreter", {
           method: "POST",
           body: query
         });
-        const json = await res.json();
-        return json.elements.slice(0, 5);
+        return (await res.json()).elements.slice(0, 5);
       }
 
       async function fetchWeather(lat, lon) {
         const url = `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${OPENWEATHER_API_KEY}&units=metric&lang=vi`;
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("OpenWeather error");
-        return await res.json();
+        return await (await fetch(url)).json();
       }
 
-      btnSearch.addEventListener("click", async () => {
-        const q = placeInput.value.trim();
-        if (!q) {
-          alert("Nhập địa điểm trước!");
-          return;
-        }
+      btnSearch.onclick = async () => {
 
-        btnSearch.textContent = "Đang tìm...";
-        btnSearch.disabled = true;
+        const q = placeInput.value.trim();
+        if (!q) return alert("Nhập địa điểm!");
+
+        const loc = await geocode(q);
+        if (!loc) return alert("Không tìm thấy!");
+
+        map.setView([loc.lat, loc.lon], 15);
+
+        map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+
+        const pois = await fetchPOI(loc.lat, loc.lon);
+        pois.forEach(p => {
+          L.marker([p.lat, p.lon])
+            .addTo(map)
+            .bindPopup(p.tags.name || "(không tên)");
+        });
+
+        const w = await fetchWeather(loc.lat, loc.lon);
+        weatherCard.classList.remove("hidden");
+        weatherPlace.textContent = loc.display_name;
+        weatherTemp.textContent = Math.round(w.main.temp) + "°C";
+        weatherDesc.textContent = w.weather[0].description;
+        weatherExtra.textContent =
+          `Cảm giác như ${Math.round(w.main.feels_like)}°C • Độ ẩm ${w.main.humidity}%`;
+
+      };
+
+      /* ======================
+          POPUP TRANSLATE
+      =======================*/
+
+      const popup = document.getElementById("translatePopup");
+      const btnOpen = document.getElementById("openTranslatePopup");
+      const btnClose = document.getElementById("btnClosePopup");
+      const btnTranslate = document.getElementById("btnTranslate");
+
+      btnOpen.onclick = () => popup.classList.remove("hidden");
+      btnClose.onclick = () => popup.classList.add("hidden");
+
+      btnTranslate.onclick = async () => {
+
+        const text = document.getElementById("translateInput").value.trim();
+        const out  = document.getElementById("translateOutput");
+
+        if (!text) return out.textContent = "Hãy nhập câu!";
+
+        out.textContent = "Đang dịch...";
 
         try {
-          // 1) Geocode
-          const loc = await geocode(q);
-          if (!loc) {
-            alert("Không tìm thấy địa điểm!");
-            return;
-          }
-
-          map.setView([loc.lat, loc.lon], 15);
-
-          // Xóa marker cũ
-          map.eachLayer(layer => {
-            if (layer instanceof L.Marker) map.removeLayer(layer);
+          const res = await fetch("https://humble-doodle-69rwvr64wgjpfrv5-5501.app.github.dev/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text })
           });
 
-          // 2) POI
-          const pois = await fetchPOI(loc.lat, loc.lon);
-          pois.forEach(poi => {
-            const name = (poi.tags && poi.tags.name) || "(không tên)";
-            const type = (poi.tags && poi.tags.amenity) || "";
-            L.marker([poi.lat, poi.lon])
-              .addTo(map)
-              .bindPopup(`<b>${name}</b><br>${type}`);
-          });
+          const data = await res.json();
+          out.textContent = data.translated || "Lỗi: " + data.error;
 
-          // 3) Weather
-          if (!OPENWEATHER_API_KEY || OPENWEATHER_API_KEY === "YOUR_OPENWEATHER_API_KEY") {
-            console.warn("Chưa set OpenWeather API key.");
-          } else {
-            const w = await fetchWeather(loc.lat, loc.lon);
-            weatherCard.classList.remove("hidden");
-            weatherPlace.textContent = loc.displayName;
-            weatherTemp.textContent  = Math.round(w.main.temp) + "°C";
-            weatherDesc.textContent  = (w.weather[0].description || "").toUpperCase();
-            weatherExtra.textContent =
-              `Cảm giác như ${Math.round(w.main.feels_like)}°C • Độ ẩm ${w.main.humidity}% • Gió ${w.wind.speed} m/s`;
-          }
         } catch (err) {
-          console.error(err);
-          alert("Có lỗi khi gọi API (Nominatim / Overpass / OpenWeather).");
-        } finally {
-          btnSearch.textContent = "Tìm";
-          btnSearch.disabled = false;
+          out.textContent = "Không kết nối được server Python!";
         }
-      });
+      };
+
     });
   </script>
+
 </body>
 </html>
